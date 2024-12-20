@@ -58,12 +58,18 @@ class _EditProductFormState extends State<EditProductForm> {
         await _apiService.updateProduct(updatedProduct);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Produk berhasil diperbarui!')),
+          SnackBar(
+            content: Text('Produk berhasil diperbarui!'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context, true);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memperbarui produk: $e')),
+          SnackBar(
+            content: Text('Gagal memperbarui produk: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -73,96 +79,200 @@ class _EditProductFormState extends State<EditProductForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Produk'),
+        title: Text(
+          'Edit Produk',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.lightBlue,
+        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.lightBlue.shade50,
+              Colors.lightBlue.shade100,
+            ],
+          ),
+        ),
+        child: Center(
           child: SingleChildScrollView(
-            child: Column(
-              children: [
-                TextFormField(
-                  initialValue: _name,
-                  decoration: const InputDecoration(labelText: 'Nama Produk'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Silahkan masukan nama produk';
-                    }
-                    return null;
-                  },
-                  onSaved: (value) => _name = value ?? '',
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Card(
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                TextFormField(
-                  controller: _priceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Harga Produk',
-                    prefixText: 'Rp ',
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Edit Produk',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        _buildProductNameField(),
+                        const SizedBox(height: 16),
+                        _buildPriceField(),
+                        const SizedBox(height: 16),
+                        _buildQuantityField(),
+                        const SizedBox(height: 16),
+                        _buildDescriptionField(),
+                        const SizedBox(height: 24),
+                        _buildUpdateButton(),
+                      ],
+                    ),
                   ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Silahkan masukan harga produk';
-                    }
-                    if (double.tryParse(value.replaceAll('.', '')) == null) {
-                      return 'Harga harus berupa angka';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    if (value.isNotEmpty) {
-                      final parsedValue =
-                          double.tryParse(value.replaceAll('.', '')) ?? 0.0;
-                      _priceController.text = formatRupiah(parsedValue)
-                          .replaceAll('Rp', '')
-                          .trim();
-                      _priceController.selection = TextSelection.fromPosition(
-                        TextPosition(offset: _priceController.text.length),
-                      );
-                    }
-                  },
-                  onSaved: (value) {
-                    _price = double.tryParse(
-                            value?.replaceAll('.', '').replaceAll('Rp', '') ??
-                                '') ??
-                        0.0;
-                  },
                 ),
-                TextFormField(
-                  initialValue: _jumlah.toString(),
-                  decoration: const InputDecoration(labelText: 'Jumlah Produk'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Silahkan masukan jumlah produk';
-                    }
-                    if (int.tryParse(value) == null) {
-                      return 'Jumlah harus berupa angka';
-                    }
-                    return null;
-                  },
-                  onSaved: (value) => _jumlah = int.tryParse(value ?? '') ?? 0,
-                ),
-                TextFormField(
-                  initialValue: _deskripsi,
-                  decoration: const InputDecoration(labelText: 'Deskripsi Produk'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Silahkan masukan deskripsi produk';
-                    }
-                    return null;
-                  },
-                  onSaved: (value) => _deskripsi = value ?? '',
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _submitForm,
-                  child: const Text('Update Produk'),
-                ),
-              ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProductNameField() {
+    return TextFormField(
+      initialValue: _name,
+      decoration: _getInputDecoration('Nama Produk', Icons.shopping_bag),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Silahkan masukan nama produk';
+        }
+        return null;
+      },
+      onSaved: (value) => _name = value ?? '',
+      style: TextStyle(color: Colors.black),
+    );
+  }
+
+  Widget _buildPriceField() {
+    return TextFormField(
+      controller: _priceController,
+      decoration: _getInputDecoration('Harga Produk', Icons.attach_money, prefixText: 'Rp '),
+      keyboardType: TextInputType.number,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Silahkan masukan harga produk';
+        }
+        if (double.tryParse(value.replaceAll('.', '')) == null) {
+          return 'Harga harus berupa angka';
+        }
+        return null;
+      },
+      onChanged: (value) {
+        if (value.isNotEmpty) {
+          final parsedValue = double.tryParse(value.replaceAll('.', '')) ?? 0.0;
+          _priceController.text = formatRupiah(parsedValue)
+              .replaceAll('Rp', '')
+              .trim();
+          _priceController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _priceController.text.length),
+          );
+        }
+      },
+      onSaved: (value) {
+        _price = double.tryParse(
+                value?.replaceAll('.', '').replaceAll('Rp', '') ?? '') ??
+            0.0;
+      },
+      style: TextStyle(color: Colors.black),
+    );
+  }
+
+  Widget _buildQuantityField() {
+    return TextFormField(
+      initialValue: _jumlah.toString(),
+      decoration: _getInputDecoration('Jumlah Produk', Icons.numbers),
+      keyboardType: TextInputType.number,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Silahkan masukan jumlah produk';
+        }
+        if (int.tryParse(value) == null) {
+          return 'Jumlah harus berupa angka';
+        }
+        return null;
+      },
+      onSaved: (value) => _jumlah = int.tryParse(value ?? '') ?? 0,
+      style: TextStyle(color: Colors.black),
+    );
+  }
+
+  Widget _buildDescriptionField() {
+    return TextFormField(
+      initialValue: _deskripsi,
+      decoration: _getInputDecoration('Deskripsi Produk', Icons.description),
+      maxLines: 3,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Silahkan masukan deskripsi produk';
+        }
+        return null;
+      },
+      onSaved: (value) => _deskripsi = value ?? '',
+      style: TextStyle(color: Colors.black),
+    );
+  }
+
+  Widget _buildUpdateButton() {
+    return ElevatedButton(
+      onPressed: _submitForm,
+      style: ElevatedButton.styleFrom(
+        backgroundColor : Colors.lightBlue,
+        padding: EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Text(
+        'Update Produk',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _getInputDecoration(String label, IconData icon, {String? prefixText}) {
+    return InputDecoration(
+      labelText: label,
+      prefixText: prefixText,
+      prefixIcon: Icon(icon, color: Colors.lightBlue),
+      labelStyle: TextStyle(color: Colors.lightBlue),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.lightBlue.shade200, width: 1.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.lightBlue, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.red, width: 1.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.red, width: 2),
+        borderRadius: BorderRadius.circular(12),
       ),
     );
   }

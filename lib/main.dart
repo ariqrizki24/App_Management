@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'models/product.dart';
 import 'services/api_service.dart';
-import 'add_product.dart';  
-import 'update_product.dart'; 
+import 'manage_product.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,8 +14,32 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'App Management Barang',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      title: 'Produk Aplikasi',
+      theme: ThemeData(
+        primarySwatch: Colors.lightBlue,
+        scaffoldBackgroundColor: Colors.lightBlue[50],
+        appBarTheme: AppBarTheme(
+          elevation: 0,
+          backgroundColor: Colors.lightBlue[400],
+          foregroundColor: Colors.white,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.lightBlue[600],
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        listTileTheme: ListTileThemeData(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          tileColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ),
       debugShowCheckedModeBanner: false,
       home: const HomeScreen(),
     );
@@ -32,42 +55,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ApiService _apiService = ApiService();
-  late Future<List<Product>> _products;
+  late Future<List<Product>> _productsFuture;
 
   @override
   void initState() {
     super.initState();
-    _fetchProducts();
+    _loadProducts();
   }
 
-  void _fetchProducts() {
+  void _loadProducts() {
     setState(() {
-      _products = _apiService.getProducts();
+      _productsFuture = _apiService.getProducts();
     });
   }
-
-  void _addProduct() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => AddProductForm()),
-    );
-    _fetchProducts();
-  }
-
-  void _updateProduct(Product product) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => EditProductForm(product: product)),
-    );
-    _fetchProducts();
-  }
-
-  void _deleteProduct(int id) async {
-    await _apiService.deleteProduct(id);
-    _fetchProducts();
-  }
-  
-  String formatRupiah(double value) {
+  String _formatCurrency(double value) {
     final formatter = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp',
@@ -80,77 +81,111 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('App Management Barang'),
+        title: const Text(
+          'Daftar Produk',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
       ),
-      body: FutureBuilder<List<Product>>(
-        future: _products,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Terjadi Kesalahan: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Tidak Ada Produk.'));
-          } else {
-            final products = snapshot.data!;
-            return ListView.builder(
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final product = products[index];
-                return ListTile(
-                  title: Text(product.name),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Harga: ${formatRupiah(product.price)}'),
-                      Text('Jumlah: ${product.jumlah}'),
-                      Text('Deskripsi: ${product.deskripsi}'),
-                    ],
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: _buildProductList(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProductManagementScreen(),
                   ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _updateProduct(product),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Hapus Produk'),
-                              content: const Text('Yakin ingin menghapus produk ini?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Batal'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                    _deleteProduct(product.id);
-                                  },
-                                  child: const Text('Hapus'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                );
+                ).then((_) => _loadProducts());
               },
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text(
+                'Kelola Produk',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductList() {
+    return FutureBuilder<List<Product>>(
+      future: _productsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Colors.lightBlue,
+            ),
+          );
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(
+            child: Text(
+              'Tidak ada produk tersedia.',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey,
+              ),
+            ),
+          );
+        }
+        return ListView.separated(
+          itemCount: snapshot.data!.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final product = snapshot.data![index];
+            return Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ListTile(
+                title: Text(
+                  product.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                subtitle: Text(
+                  'Harga: ${_formatCurrency(product.price)} | Jumlah: ${product.jumlah} | Deskripsi: ${product.deskripsi}',
+                  style: TextStyle(
+                    color: const Color.fromARGB(255, 43, 43, 43),
+                  ),
+                ),
+              ),
             );
-          }
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addProduct,
-        child: const Icon(Icons.add),
-      ),
+          },
+        );
+      },
     );
   }
 }
